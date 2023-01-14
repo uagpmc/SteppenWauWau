@@ -19,6 +19,21 @@ client.on("ready", () => {
 
   // run presenceCountdown() every 30 seconds
   setInterval(presenceCountdown, 30 * 1000);
+
+  // check if I'm in any guilds that don't match the guild ID in .env
+  const guilds = client.guilds.cache.filter(
+    (guild) => guild.id !== process.env.DISCORD_GUILD_ID
+  );
+
+  console.log(`Found ${guilds.size} guilds`);
+
+  // if I am, leave them
+  if (guilds.size > 0) {
+    guilds.forEach((guild) => {
+      console.log(`Leaving guild ${guild.name} (${guild.id})`);
+      guild.leave();
+    });
+  }
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);
