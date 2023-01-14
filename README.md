@@ -1,4 +1,4 @@
-![](icon_original.png)
+![](icon_production.png)
 
 # SteppenWauWau
 
