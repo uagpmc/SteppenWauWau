@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { Client, GatewayIntentBits } from "discord.js";
 import ActivityType from "./helpers/ActivityType.js";
-import internal from "stream";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
