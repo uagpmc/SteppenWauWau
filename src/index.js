@@ -39,7 +39,7 @@ client.on("ready", () => {
 client.login(process.env.DISCORD_BOT_TOKEN);
 
 async function presenceCountdown() {
-  const result = await fetch("https://api.uagpmc.com/session/next");
+  const result = await fetch("https://uagpmc.com/api/session/next");
   const json = await result.json();
   const { days, hours, minutes, seconds } = json;
 
