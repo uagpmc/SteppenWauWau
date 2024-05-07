@@ -1,0 +1,2 @@
+# SteppenWauWau
+Our Discord bot.
