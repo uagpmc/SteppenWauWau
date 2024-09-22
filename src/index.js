@@ -5,10 +5,12 @@ import {
   Events,
   SlashCommandBuilder,
   ActivityType,
+  Partials,
 } from "discord.js";
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: Object.values(GatewayIntentBits),
+  partials: Object.values(Partials),
   presence: {
     activities: [
       {
@@ -19,7 +21,7 @@ const client = new Client({
   },
 });
 
-client.on(Events.ClientReady, () => {
+client.on(Events.ClientReady, async () => {
   console.log(`Logged in as ${client.user.tag}!`);
 
   // check if I'm in any guilds that don't match the guild ID in .env
@@ -55,8 +57,16 @@ client.on(Events.ClientReady, () => {
   });
 });
 
-client.on(Events.GuildMemberAdd, (member) => {
-  sendMemberIntro(member);
+client.on(Events.GuildMemberAdd, async (member) => {
+  await sendMemberIntro(member);
+});
+
+client.on(Events.GuildMemberAvailable, async (member) => {
+  await sendMemberIntro(member);
+});
+
+client.on(Events.GuildMemberRemove, async (member) => {
+  await sendMemberGoodbye(member);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -86,9 +96,7 @@ async function sendMemberIntro(member) {
   intro += `\n\n`;
   intro += `## How to join`;
   intro += `\n\n`;
-  intro +=
-    `It's simple! Just head over to our [recruitment-text channel](${recruitmentUrl}) in the Discord use the ` /
-    apply` command to get started. You'll be asked a few questions about your experience with Arma and what you're looking for in a group. Once you've filled out the application, a member of our recruitment team will reach out to you to schedule a quick interview. Don't worry, it's nothing too serious! We just want to make sure you'll fit in with our group so you can have the best experience possible.`;
+  intro += `It's simple! Just head over to our [recruitment-text channel](${recruitmentUrl}) in the Discord use the \`/apply\` command to get started. You'll be asked a few questions about your experience with Arma and what you're looking for in a group. Once you've filled out the application, a member of our recruitment team will reach out to you to schedule a quick interview. Don't worry, it's nothing too serious! We just want to make sure you'll fit in with our group so you can have the best experience possible.`;
   intro += `\n\n`;
   intro += `## Anything else?`;
   intro += `\n\n`;
@@ -96,7 +104,25 @@ async function sendMemberIntro(member) {
   intro += `\n\n`;
   intro += `Oh, and if you somehow leave the Discord server, don't worry! You can always rejoin by clicking [here](https://uagpmc.com/discord).`;
 
-  member.send(intro);
+  try {
+    await member.send(intro);
+  } catch (error) {
+    console.error(`Failed to send intro to ${member}: ${error}`);
+  }
+}
+
+async function sendMemberGoodbye(member) {
+  let goodbye = `# It looks like you've left Unnamed Arma Group!`;
+  goodbye += `\n\n`;
+  goodbye += `Goodbye, ${member}!`;
+  goodbye += `\n\n`;
+  goodbye += `We're all sorry to see you go! If you ever change your mind, you can always rejoin by clicking [here](https://uagpmc.com/discord).`;
+
+  try {
+    await member.send(goodbye);
+  } catch (error) {
+    console.error(`Failed to send goodbye to ${member}: ${error}`);
+  }
 }
 
 function uagChannel(name) {
@@ -115,28 +141,34 @@ const InteractionCommands = {
           .setName("name")
           .setDescription("Your in-game name.")
           .setRequired(true)
+      )
+      .addIntegerOption((option) =>
+        option.setName("age").setDescription("Your age.").setRequired(true)
+      )
+      .addStringOption((option) =>
+        option
+          .setName("country")
+          .setDescription("The country you're in.")
+          .setRequired(true)
+      )
+      .addBooleanOption((option) =>
+        option
+          .setName("used-ace")
+          .setDescription("Have you used the ACE mod before?")
+          .setRequired(true)
+      )
+      .addBooleanOption((option) =>
+        option
+          .setName("used-acre-or-tfar")
+          .setDescription("Have you used ACRE or TFAR before?")
+          .setRequired(true)
+      )
+      .addBooleanOption((option) =>
+        option
+          .setName("returning-member")
+          .setDescription("Are you a returning member?")
+          .setRequired(true)
       ),
-    // .addIntegerOption((option) =>
-    //   option.setName("age").setDescription("Your age.").setRequired(true)
-    // )
-    // .addStringOption((option) =>
-    //   option
-    //     .setName("country")
-    //     .setDescription("The country you're in.")
-    //     .setRequired(true)
-    // )
-    // .addBooleanOption((option) =>
-    //   option
-    //     .setName("used-ace")
-    //     .setDescription("Have you used the ACE mod before?")
-    //     .setRequired(true)
-    // )
-    // .addBooleanOption((option) =>
-    //   option
-    //     .setName("used-acre-or-tfar")
-    //     .setDescription("Have you used ACRE or TFAR before?")
-    //     .setRequired(true)
-    // )
     async execute({ interaction }) {
       const applicationData = {
         name: interaction.options.getString("name"),
@@ -144,17 +176,16 @@ const InteractionCommands = {
         country: interaction.options.getString("country"),
         usedAce: interaction.options.getBoolean("used-ace"),
         usedAcreOrTfar: interaction.options.getBoolean("used-acre-or-tfar"),
+        returningMember: interaction.options.getBoolean("returning-member"),
       };
 
       const applicationsChannel = uagChannel("applications");
 
       await applicationsChannel.send(
-        `New application from ${interaction.user.tag}:\n\n` +
-          `Name: ${applicationData.name}\n` +
-          `Age: ${applicationData.age}\n` +
-          `Country: ${applicationData.country}\n` +
-          `Used ACE: ${applicationData.usedAce}\n` +
-          `Used ACRE/TFAR: ${applicationData.usedAcreOrTfar}`
+        `New application from ${interaction.user}:\n\n` +
+          "```json\n" +
+          JSON.stringify(applicationData, null, 2) +
+          "```"
       );
 
       await interaction.reply({
