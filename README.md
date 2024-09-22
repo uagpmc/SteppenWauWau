@@ -1,2 +1,5 @@
+![](icon_production.png)
+
 # SteppenWauWau
-Our Discord bot.
+
+A Discord bot for the UAG Discord server.
