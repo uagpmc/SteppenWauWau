@@ -73,7 +73,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.login(process.env.DISCORD_BOT_TOKEN);
 
-function sendMemberIntro(member) {
+async function sendMemberIntro(member) {
   let recruitmentTextChannel = uagChannel("recruitment-text");
   let recruitmentUrl = recruitmentTextChannel.url;
 
@@ -100,10 +100,9 @@ function sendMemberIntro(member) {
 }
 
 function uagChannel(name) {
-  return client.channels.cache.find(
-    (channel) =>
-      channel.name === name && channel.guild.id === process.env.DISCORD_GUILD_ID
-  );
+  return client.guilds.cache
+    .get(process.env.DISCORD_GUILD_ID)
+    .channels.cache.find((channel) => channel.name === name);
 }
 
 const InteractionCommands = {
@@ -116,28 +115,28 @@ const InteractionCommands = {
           .setName("name")
           .setDescription("Your in-game name.")
           .setRequired(true)
-      )
-      .addIntegerOption((option) =>
-        option.setName("age").setDescription("Your age.").setRequired(true)
-      )
-      .addStringOption((option) =>
-        option
-          .setName("country")
-          .setDescription("The country you're in.")
-          .setRequired(true)
-      )
-      .addBooleanOption((option) =>
-        option
-          .setName("used-ace")
-          .setDescription("Have you used the ACE mod before?")
-          .setRequired(true)
-      )
-      .addBooleanOption((option) =>
-        option
-          .setName("used-acre-or-tfar")
-          .setDescription("Have you used ACRE or TFAR before?")
-          .setRequired(true)
       ),
+    // .addIntegerOption((option) =>
+    //   option.setName("age").setDescription("Your age.").setRequired(true)
+    // )
+    // .addStringOption((option) =>
+    //   option
+    //     .setName("country")
+    //     .setDescription("The country you're in.")
+    //     .setRequired(true)
+    // )
+    // .addBooleanOption((option) =>
+    //   option
+    //     .setName("used-ace")
+    //     .setDescription("Have you used the ACE mod before?")
+    //     .setRequired(true)
+    // )
+    // .addBooleanOption((option) =>
+    //   option
+    //     .setName("used-acre-or-tfar")
+    //     .setDescription("Have you used ACRE or TFAR before?")
+    //     .setRequired(true)
+    // )
     async execute({ interaction }) {
       const applicationData = {
         name: interaction.options.getString("name"),
@@ -160,6 +159,7 @@ const InteractionCommands = {
 
       await interaction.reply({
         content: `Your application has been received! A member of our recruitment team will reach out to you soon.`,
+        ephemeral: true,
       });
     },
   },
