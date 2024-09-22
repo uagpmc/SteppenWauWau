@@ -56,8 +56,6 @@ client.on(Events.ClientReady, () => {
 });
 
 client.on(Events.GuildMemberAdd, (member) => {
-  if (member.guild.id !== process.env.DISCORD_GUILD_ID) return;
-
   sendMemberIntro(member);
 });
 
@@ -95,6 +93,8 @@ async function sendMemberIntro(member) {
   intro += `## Anything else?`;
   intro += `\n\n`;
   intro += `If you have any questions, feel free to ask in the [recruitment-text channel](${recruitmentUrl}) and someone will be happy to help you out!`;
+  intro += `\n\n`;
+  intro += `Oh, and if you somehow leave the Discord server, don't worry! You can always rejoin by clicking [here](https://uagpmc.com/discord).`;
 
   member.send(intro);
 }
