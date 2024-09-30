@@ -411,17 +411,27 @@ const InteractionCommands = {
                   )
                 )?.preferences?.roles;
 
-                if (!role_preferences) {
-                  await interaction.reply({
+                let role_preferences_filtered = null;
+
+                if (role_preferences)
+                  role_preferences_filtered = Object.fromEntries(
+                    Object.entries(role_preferences).filter(
+                      ([role, value]) => value !== null
+                    )
+                  );
+
+                if (
+                  !role_preferences_filtered ||
+                  !Object.keys(role_preferences_filtered).length
+                )
+                  return await interaction.reply({
                     content: `You haven't set any role preferences yet.`,
                     ephemeral: true,
                   });
-                  return;
-                }
 
                 const preferencesText =
                   `# Your role preferences:\n\n` +
-                  Object.entries(role_preferences)
+                  Object.entries(role_preferences_filtered)
                     .map(
                       ([role, { value }]) =>
                         `**${role}**: ${
