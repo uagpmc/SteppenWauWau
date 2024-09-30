@@ -199,15 +199,15 @@ const preferences_roles = [
 const preferences_roles_choices = [
   {
     name: "never",
-    value: 0,
-  },
-  {
-    name: "sometimes",
     value: 1,
   },
   {
-    name: "always",
+    name: "sometimes",
     value: 2,
+  },
+  {
+    name: "always",
+    value: 3,
   },
 ];
 
@@ -320,6 +320,28 @@ const InteractionCommands = {
               .setName("get")
               .setDescription("Get your role preferences.")
           )
+          .addSubcommand((subcommand) =>
+            subcommand
+              .setName("remove")
+              .setDescription("Remove a role preference.")
+              .addStringOption((option) =>
+                option
+                  .setName("role")
+                  .setDescription("The role you want to remove.")
+                  .setRequired(true)
+                  .addChoices(
+                    preferences_roles.map((role) => ({
+                      name: role.name,
+                      value: role.name,
+                    }))
+                  )
+              )
+          )
+          .addSubcommand((subcommand) =>
+            subcommand
+              .setName("clear")
+              .setDescription("Clear all your role preferences.")
+          )
       ),
     async execute({ interaction }) {
       const subcommand = interaction.options.getSubcommand();
@@ -416,6 +438,76 @@ const InteractionCommands = {
                 });
               })();
               break;
+            case "remove":
+              (async () => {
+                const role = interaction.options.getString("role");
+
+                // get the current role preference
+                const role_preferences = (
+                  await firebaseGetDocument(
+                    interaction.guild.id,
+                    interaction.user.id
+                  )
+                )?.preferences?.roles;
+
+                if (!role_preferences || !(role in role_preferences))
+                  return await interaction.reply({
+                    content: `You haven't set a preference for **${role}** yet.`,
+                    ephemeral: true,
+                  });
+
+                // set the role preference to null
+                await firebaseMergeDocument(
+                  interaction.guild.id,
+                  interaction.user.id,
+                  {
+                    preferences: {
+                      roles: {
+                        [role]: null,
+                      },
+                    },
+                  }
+                );
+
+                await interaction.reply({
+                  content: `You removed your preference for **${role}**.`,
+                  ephemeral: true,
+                });
+              })();
+              break;
+            case "clear":
+              (async () => {
+                // check if the user has any role preferences
+                const role_preferences = (
+                  await firebaseGetDocument(
+                    interaction.guild.id,
+                    interaction.user.id
+                  )
+                )?.preferences?.roles;
+
+                if (!role_preferences)
+                  return await interaction.reply({
+                    content: `You haven't set any role preferences yet.`,
+                    ephemeral: true,
+                  });
+
+                // clear all role preferences
+                await firebaseMergeDocument(
+                  interaction.guild.id,
+                  interaction.user.id,
+                  {
+                    preferences: {
+                      roles: null,
+                    },
+                  }
+                );
+
+                await interaction.reply({
+                  content: `You cleared all your role preferences.`,
+                  ephemeral: true,
+                });
+              })();
+              break;
           }
           break;
       }
@@ -434,10 +526,16 @@ async function firebaseGetDocument(collection, documentId) {
 
 async function firebaseSetDocument(collection, documentId, data) {
   const ref = firestore.collection(collection).doc(documentId);
+
   await ref.set(data);
+
+  return true;
 }
 
 async function firebaseMergeDocument(collection, documentId, data) {
   const ref = firestore.collection(collection).doc(documentId);
+
   await ref.set(data, { merge: true });
+
+  return true;
 }
