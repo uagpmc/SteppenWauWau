@@ -346,15 +346,27 @@ const InteractionCommands = {
                 const preference = interaction.options.getInteger("preference");
 
                 await firebaseMergeDocument(
-                  "role_preferences",
+                  interaction.guild.id,
                   interaction.user.id,
                   {
-                    [role]: {
-                      value: preference,
-                      _updatedAtDate: new Date(),
+                    _: {
+                      lastKnownGuildName: interaction.guild.name,
+                      lastKnownUserTag: interaction.user.tag,
+                      updatedAtDate: new Date(),
                     },
-                    _lastKnownUserTag: interaction.user.tag,
-                    _updatedAtDate: new Date(),
+                    preferences: {
+                      roles: {
+                        [role]: {
+                          _: {
+                            lastKnownValueName: preferences_roles_choices.find(
+                              (choice) => choice.value === preference
+                            ).name,
+                            updatedAtDate: new Date(),
+                          },
+                          value: preference,
+                        },
+                      },
+                    },
                   }
                 );
 
@@ -370,14 +382,16 @@ const InteractionCommands = {
               break;
             case "get":
               (async () => {
-                const preferences = await firebaseGetDocument(
-                  "role_preferences",
-                  interaction.user.id
-                );
+                const role_preferences = (
+                  await firebaseGetDocument(
+                    interaction.guild.id,
+                    interaction.user.id
+                  )
+                )?.preferences?.roles;
 
-                if (!preferences) {
+                if (!role_preferences) {
                   await interaction.reply({
-                    content: `You haven't set any preferences yet.`,
+                    content: `You haven't set any role preferences yet.`,
                     ephemeral: true,
                   });
                   return;
@@ -385,16 +399,12 @@ const InteractionCommands = {
 
                 const preferencesText =
                   `# Your role preferences:\n\n` +
-                  Object.entries(preferences)
-                    .filter(
-                      ([key, value]) =>
-                        key !== "_lastKnownUserTag" && key !== "_updatedAtDate"
-                    )
+                  Object.entries(role_preferences)
                     .map(
-                      ([key, value]) =>
-                        `**${key}**: ${
+                      ([role, { value }]) =>
+                        `**${role}**: ${
                           preferences_roles_choices.find(
-                            (choice) => choice.value === value.value
+                            (choice) => choice.value === value
                           ).name
                         }`
                     )
