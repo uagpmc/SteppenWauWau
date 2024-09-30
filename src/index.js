@@ -60,7 +60,7 @@ client.on(Events.ClientReady, async () => {
     activities: [
       {
         type: ActivityType.Listening,
-        name: `to enemy comms...`,
+        name: `enemy comms...`,
       },
     ],
   });
