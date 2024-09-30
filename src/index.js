@@ -6,7 +6,16 @@ import {
   SlashCommandBuilder,
   ActivityType,
   Partials,
+  AllowedMentionsTypes,
 } from "discord.js";
+import { initializeApp, applicationDefault, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+
+const firebaseApp = initializeApp({
+  credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+});
+
+const firestore = getFirestore();
 
 const client = new Client({
   intents: Object.values(GatewayIntentBits),
@@ -131,6 +140,77 @@ function uagChannel(name) {
     .channels.cache.find((channel) => channel.name === name);
 }
 
+const preferences_roles = [
+  {
+    name: "rifleman",
+    description:
+      "The backbone of the team, providing suppressive fire and maneuvering to outflank the enemy.",
+  },
+  {
+    name: "autorifleman",
+    description: "High-volume suppressive fire assault infantry.",
+  },
+  {
+    name: "grenadier",
+    description: "High-angle indirect fire support infantry.",
+  },
+  {
+    name: "marksman",
+    description:
+      "Long-range high-precision anti-personnel fire support infantry.",
+  },
+  {
+    name: "pointman",
+    description: "Close-quarters anti-garrison infantry. Shotgun specialist.",
+  },
+  {
+    name: "medic",
+    description:
+      "Primary medical support, including first aid, triage, treatment, surgery, and evacuation.",
+  },
+  {
+    name: "corpsman",
+    description: "Assists the medic by providing first-response medical care.",
+  },
+  {
+    name: "sniper",
+    description: "Pathfinder and long-range anti-material specialist.",
+  },
+  {
+    name: "armour_crew",
+    description:
+      "Armoured-vehicle crew. Driver, gunner, and loader for tanks and APCs. Doesn't include commander role, see leadership for that.",
+  },
+  {
+    name: "heli_pilot",
+    description: "Rotary-wing pilot.",
+  },
+  {
+    name: "jet_pilot",
+    description: "Fixed-wing pilot.",
+  },
+  {
+    name: "leadership",
+    description:
+      "Team leaders, section commanders, tank commanders, wing commanders, etc.",
+  },
+];
+
+const preferences_roles_choices = [
+  {
+    name: "never",
+    value: 0,
+  },
+  {
+    name: "sometimes",
+    value: 1,
+  },
+  {
+    name: "always",
+    value: 2,
+  },
+];
+
 const InteractionCommands = {
   apply: {
     data: new SlashCommandBuilder()
@@ -194,4 +274,160 @@ const InteractionCommands = {
       });
     },
   },
+  preferences: {
+    data: new SlashCommandBuilder()
+      .setName("preferences")
+      .setDescription("Set your preferences for the unit.")
+      .addSubcommandGroup((group) =>
+        group
+          .setName("roles")
+          .setDescription(
+            "Your in-game role preferences. Use `/preferences roles list` for more information on each role."
+          )
+          .addSubcommand((subcommand) =>
+            subcommand
+              .setName("list")
+              .setDescription(
+                "List all available roles and their descriptions."
+              )
+          )
+          .addSubcommand((subcommand) =>
+            subcommand
+              .setName("set")
+              .setDescription("Set your role preferences.")
+              .addStringOption((option) =>
+                option
+                  .setName("role")
+                  .setDescription("The role you want to set.")
+                  .setRequired(true)
+                  .addChoices(
+                    preferences_roles.map((role) => ({
+                      name: role.name,
+                      value: role.name,
+                    }))
+                  )
+              )
+              .addIntegerOption((option) =>
+                option
+                  .setName("preference")
+                  .setDescription("Your preference for this role.")
+                  .setRequired(true)
+                  .addChoices(...preferences_roles_choices)
+              )
+          )
+          .addSubcommand((subcommand) =>
+            subcommand
+              .setName("get")
+              .setDescription("Get your role preferences.")
+          )
+      ),
+    async execute({ interaction }) {
+      const subcommand = interaction.options.getSubcommand();
+      const subcommandGroup = interaction.options.getSubcommandGroup();
+
+      switch (subcommandGroup) {
+        case "roles":
+          switch (subcommand) {
+            case "list":
+              (async () => {
+                await interaction.reply({
+                  content:
+                    `# Available roles:\n\n` +
+                    preferences_roles
+                      .map((role) => `**${role.name}**: ${role.description}\n`)
+                      .join(""),
+                  ephemeral: true,
+                });
+              })();
+              break;
+            case "set":
+              (async () => {
+                const role = interaction.options.getString("role");
+                const preference = interaction.options.getInteger("preference");
+
+                await firebaseMergeDocument(
+                  "role_preferences",
+                  interaction.user.id,
+                  {
+                    [role]: {
+                      value: preference,
+                      _updatedAtDate: new Date(),
+                    },
+                    _lastKnownUserTag: interaction.user.tag,
+                    _updatedAtDate: new Date(),
+                  }
+                );
+
+                await interaction.reply({
+                  content: `You set your preference for **${role}** to \`${
+                    preferences_roles_choices.find(
+                      (choice) => choice.value === preference
+                    ).name
+                  }\``,
+                  ephemeral: true,
+                });
+              })();
+              break;
+            case "get":
+              (async () => {
+                const preferences = await firebaseGetDocument(
+                  "role_preferences",
+                  interaction.user.id
+                );
+
+                if (!preferences) {
+                  await interaction.reply({
+                    content: `You haven't set any preferences yet.`,
+                    ephemeral: true,
+                  });
+                  return;
+                }
+
+                const preferencesText =
+                  `# Your role preferences:\n\n` +
+                  Object.entries(preferences)
+                    .filter(
+                      ([key, value]) =>
+                        key !== "_lastKnownUserTag" && key !== "_updatedAtDate"
+                    )
+                    .map(
+                      ([key, value]) =>
+                        `**${key}**: ${
+                          preferences_roles_choices.find(
+                            (choice) => choice.value === value.value
+                          ).name
+                        }`
+                    )
+                    .join("\n");
+
+                await interaction.reply({
+                  content: preferencesText,
+                  ephemeral: true,
+                });
+              })();
+              break;
+          }
+          break;
+      }
+    },
+  },
 };
+
+async function firebaseGetDocument(collection, documentId) {
+  const ref = firestore.collection(collection).doc(documentId);
+  const doc = await ref.get();
+
+  if (!doc.exists) return null;
+
+  return doc.data();
+}
+
+async function firebaseSetDocument(collection, documentId, data) {
+  const ref = firestore.collection(collection).doc(documentId);
+  await ref.set(data);
+}
+
+async function firebaseMergeDocument(collection, documentId, data) {
+  const ref = firestore.collection(collection).doc(documentId);
+  await ref.set(data, { merge: true });
+}
