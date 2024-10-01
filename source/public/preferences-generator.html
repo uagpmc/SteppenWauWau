@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preferences Generator</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
+    />
+    <style>
+      main {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>UAG Preferences Generator 🛠️</h1>
+      <p>
+        This tool allows you to generate a preferences string for the UAG
+        Discord bot to update your preferences in the UAG database. This tool is
+        a work in progress and is not yet fully functional, sorry!
+      </p>
+
+      <section id="change">
+        <h2>Make Changes</h2>
+
+        <h3>In-Game Roles 🪖</h3>
+        <form id="changeRoles"></form>
+      </section>
+
+      <section id="export">
+        <h2>Export String</h2>
+        <textarea id="exportString"></textarea>
+        <button id="copy">Copy to Clipboard</button>
+      </section>
+    </main>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // get main and show it
+        const main = document.querySelector("main");
+        main.style.display = "block";
+
+        // populate the form with the roles
+        const changeRolesForm = document.querySelector("#changeRoles");
+
+        const roles = [
+          {
+            name: "Rifleman",
+            description:
+              "The backbone of the team, providing suppressive fire and maneuvering to outflank the enemy.",
+          },
+          {
+            name: "Autorifleman",
+            description: "High-volume suppressive fire assault infantry.",
+          },
+          {
+            name: "Grenadier",
+            description: "High-angle indirect fire support infantry.",
+          },
+          {
+            name: "Marksman",
+            description:
+              "Long-range high-precision anti-personnel fire support infantry.",
+          },
+          {
+            name: "Pointman",
+            description:
+              "Close-quarters anti-garrison infantry. Shotgun specialist.",
+          },
+          {
+            name: "Medic",
+            description:
+              "Primary medical support, including first aid, triage, treatment, surgery, and evacuation.",
+          },
+          {
+            name: "Corpsman",
+            description:
+              "Assists the medic by providing first-response medical care.",
+          },
+          {
+            name: "Sniper",
+            description: "Pathfinder and long-range anti-material specialist.",
+          },
+          {
+            name: "Armour Crew",
+            description:
+              "Armoured-vehicle crew. Driver, gunner, and loader for tanks and APCs. Doesn't include commander role, see leadership for that.",
+          },
+          {
+            name: "Rotary-Wing Pilot",
+            description: "Pilots helicopters.",
+          },
+          {
+            name: "Fixed-Wing Pilot",
+            description: "Pilots jets.",
+          },
+          {
+            name: "Leadership",
+            description:
+              "Team leaders, section commanders, tank commanders, wing commanders, etc.",
+          },
+        ].map((role) => {
+          return {
+            name: role.name,
+            description: role.description,
+            safeName: `role___${role.name.toLowerCase().replace(" ", "_")}`,
+          };
+        });
+
+        const roleOptions = ["Never", "Rarely", "Sometimes", "Often", "Always"];
+
+        roles.forEach((role) => {
+          const label = document.createElement("label");
+          label.innerHTML = `<b>${role.name}:</b> ${role.description}`;
+          changeRolesForm.appendChild(label);
+
+          const select = document.createElement("select");
+          select.name = role.safeName;
+          roleOptions.forEach((option) => {
+            const optionElement = document.createElement("option");
+            optionElement.value = option.toLowerCase();
+            optionElement.text = option;
+            select.appendChild(optionElement);
+          });
+          changeRolesForm.appendChild(select);
+
+          const br = document.createElement("br");
+          changeRolesForm.appendChild(br);
+        });
+
+        // export string
+        const exportString = document.querySelector("#exportString");
+        const copyButton = document.querySelector("#copy");
+
+        copyButton.addEventListener("click", () => {
+          exportString.select();
+          document.execCommand("copy");
+          alert(
+            "Copied to clipboard! Now paste it into the /preferences import command in Discord."
+          );
+        });
+
+        // update export string
+        changeRolesForm.addEventListener("change", () => {
+          const preferences = Array.from(changeRolesForm.elements)
+            .filter((element) => element.tagName === "SELECT")
+            .map((element) => `${element.name}=${element.value}`)
+            .join("&");
+
+          exportString.value = preferences;
+        });
+      });
+    </script>
+  </body>
+</html>
