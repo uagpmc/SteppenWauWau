@@ -29,7 +29,7 @@ export default {
 
     switch (subcommand) {
       case "help":
-        await preferencesHelp();
+        await preferencesHelp(interaction);
         break;
       case "import":
         await preferencesImport(interaction);
@@ -41,13 +41,16 @@ export default {
   },
 };
 
-async function preferencesHelp() {
+async function preferencesHelp(interaction) {
   let message = "# Preferences Commands Help";
   message += "\n";
   message +=
     "To use this command, you need to go to the [online generator](https://steppenwauwau.uagpmc.com/preferences-generator.html) and generate a preferences string. Then, you can use the `/preferences import` command and the bot will parse the preferences string and save it to the database.";
 
-  await interaction.reply(message);
+  await interaction.reply({
+    content: message,
+    ephemeral: true,
+  });
 }
 
 async function preferencesImport(interaction) {

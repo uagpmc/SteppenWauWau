@@ -261,6 +261,8 @@ client.on(Events.MessageDelete, async (message) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.isCommand()) {
     try {
+      console.log(`Received command: ${interaction.commandName}`);
+
       const commandFile = await import(
         `./commands/${interaction.commandName}.js`
       );
